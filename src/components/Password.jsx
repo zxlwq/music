@@ -22,7 +22,7 @@ export default function Password({ open, title, message, onConfirm, onCancel, on
     // 获取环境变量中的密码
     const envPassword = import.meta.env.VITE_PASSWORD
     if (!envPassword) {
-      setError('系统未配置删除密码，请联系管理员')
+      setError('未配置管理员密码，请添加环境变量')
       return
     }
     
@@ -50,7 +50,7 @@ export default function Password({ open, title, message, onConfirm, onCancel, on
           <p style={{ marginBottom: '16px' }}>{message}</p>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">请输入删除密码</label>
+              <label className="form-label">请输入管理员密码</label>
               <input
                 className="form-input"
                 type="password"
