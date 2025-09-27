@@ -96,6 +96,11 @@ input, textarea, select, button {
   font-family: inherit;
 }
 
+/* Ensure all links inherit font */
+a {
+  font-family: inherit;
+}
+
 html,
 body,
 #root {
@@ -323,19 +328,21 @@ input[type="range"] { width: 200px; }
 .playlist .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .actions-inline { display: inline-flex; align-items: center; gap: 12px; }
-.download-link { color: var(--sub); text-decoration: none; font-size: 13px; padding: 0; border: none; vertical-align: baseline; }
+.download-link { color: var(--sub); text-decoration: none; font-size: 13px; padding: 0; border: none; vertical-align: baseline; font-family: inherit; }
 .download-link:hover { color: #ff8fb3; text-decoration: none; border: none; background: transparent; }
-.delete-link { color: var(--sub); background: transparent; border: none; font-size: 13px; padding: 0; cursor: pointer; vertical-align: baseline; }
+.delete-link { color: var(--sub); background: transparent; border: none; font-size: 13px; padding: 0; cursor: pointer; vertical-align: baseline; font-family: inherit; }
 .delete-link:hover { color: #fda4af; border: none; background: transparent; }
 .actions-inline .download-link[aria-label*="MV"] { font-size: 13px; }
 
 footer {
   margin-top: 12px;
   color: var(--sub);
+  font-family: inherit;
 }
 
 footer a {
   color: #ff8fb3;
+  font-family: inherit;
 }
 
 /* Card layout like screenshot */
