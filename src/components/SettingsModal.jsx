@@ -37,12 +37,15 @@ export default function SettingsModal({ open, onClose, onAddSong, onImportRepo, 
   }, [open])
 
   const applyAppearance = ({ ff, bg }) => {
+    const root = document.documentElement
     const body = document.body
-    if (!body) return
-    if (ff != null) {
-      body.style.fontFamily = ff ? ff : ''
+    
+    if (ff != null && root) {
+      // 更新 CSS 变量，影响所有元素
+      root.style.setProperty('--font-family', ff || 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial')
     }
-    if (bg != null) {
+    
+    if (bg != null && body) {
       const base = "linear-gradient(180deg, rgba(0, 0, 0, .3), rgba(0, 0, 0, .3))"
       if (bg) {
         body.style.backgroundImage = `${base}, url('${bg}')`
