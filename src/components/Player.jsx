@@ -102,6 +102,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
   const [loopMode, setLoopMode] = useState('off')
   const [shuffle, setShuffle] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
 
   const hasTracks = Array.isArray(tracks) && tracks.length > 0
   const currentTrack = hasTracks ? tracks[currentIndex] : null
@@ -155,7 +156,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
       switch (e.key) {
         case ' ':
           e.preventDefault()
-          togglePlay()
+          togglePlay().catch(console.warn)
           break
         case 'ArrowLeft':
           e.preventDefault()
@@ -307,18 +308,26 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
   }
 
 
-  const togglePlay = () => {
-    setHasInteracted(true)
-    
+  const togglePlay = async () => {
     // 防抖处理，避免快速重复点击
-    if (isPlaying) {
-      pause()
-    } else {
-      // 确保音频存在且可播放
-      const audio = audioRef.current
-      if (audio && audio.readyState >= 2) {
-        play()
+    if (isToggling) return
+    
+    setHasInteracted(true)
+    setIsToggling(true)
+    
+    try {
+      if (isPlaying) {
+        pause()
+      } else {
+        // 确保音频存在且可播放
+        const audio = audioRef.current
+        if (audio && audio.readyState >= 2) {
+          await play()
+        }
       }
+    } finally {
+      // 使用 setTimeout 确保状态更新完成后再允许下次切换
+      setTimeout(() => setIsToggling(false), 100)
     }
   }
 
