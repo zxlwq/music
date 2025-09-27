@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react'
 import Player from './components/Player.jsx'
 import SearchBar from './components/SearchBar.jsx'
 import Playlist from './components/Playlist.jsx'
-import ConfirmModal from './components/ConfirmModal.jsx'
-import SettingsModal from './components/SettingsModal.jsx'
-import ProgressModal from './components/ProgressModal.jsx'
+import Password from './components/Password.jsx'
+import Settings from './components/Settings.jsx'
+import Progress from './components/Progress.jsx'
 
 export default function App() {
   const [tracks, setTracks] = useState([])
@@ -13,9 +13,10 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [forcePlayKey, setForcePlayKey] = useState(0)
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [passwordOpen, setPasswordOpen] = useState(false)
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState('')
   const [pendingDeleteName, setPendingDeleteName] = useState('')
+  const [passwordErrorCount, setPasswordErrorCount] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [progressOpen, setProgressOpen] = useState(false)
   const [progressTitle, setProgressTitle] = useState('')
@@ -233,6 +234,56 @@ export default function App() {
     // 注意：不在这里调用 setTracks 和 loadManifest，避免重复操作
   }
 
+  // 执行删除逻辑
+  const executeDelete = async () => {
+    const url = pendingDeleteUrl
+    setPendingDeleteUrl('')
+    setPendingDeleteName('')
+    
+    // 立即从UI中移除歌曲，提供即时反馈
+    setTracks(prevTracks => prevTracks.filter(t => t.url !== url))
+    
+    // 同时从本地存储中移除，确保数据一致性
+    persistRemoveByUrl(url)
+    
+    // 计算仓库内路径：本地 /music/ 路径映射为 public/music/...
+    const computeFilePath = (u) => {
+      if (!u) return ''
+      if (u.startsWith('/public/music/')) return u.replace(/^\//, '')
+      if (u.startsWith('/music/')) return `public${u}`.replace(/^\//, '')
+      return ''
+    }
+    // 展示进度
+    setProgressOpen(true)
+    setProgressTitle('删除中')
+    setProgressMessage('正在从仓库删除文件...')
+    setProgressValue(10)
+    try {
+      const filePath = computeFilePath(url)
+      const res = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath, rawUrl: url })
+      })
+      if (!res.ok) {
+        const t = await res.text()
+        throw new Error(`删除失败：${res.status} ${t}`)
+      }
+      setProgressValue(80)
+      setProgressTitle('完成')
+      setProgressMessage('已从仓库删除并同步到列表')
+      setProgressValue(100)
+    } catch (e) {
+      console.error(e)
+      setProgressTitle('失败')
+      setProgressMessage(e.message || '删除失败')
+      // 如果删除失败，重新加载数据以恢复歌曲
+      loadManifest()
+    } finally {
+      setTimeout(() => setProgressOpen(false), 800)
+    }
+  }
+
   // 过滤歌曲（在任何条件返回之前，保持 Hooks 顺序稳定）
   const normalized = (s) => (s || '').toLowerCase()
   const filteredTracks = tracks.filter(t => {
@@ -264,69 +315,35 @@ export default function App() {
           setPendingDeleteUrl(url)
           const track = tracks.find(t => t.url === url) || filteredTracks.find(t => t.url === url)
           const title = track?.title || ''
-          // 兼容 “歌名   歌手” 或 “歌名 - 歌手” 两种格式
+          // 兼容 "歌名   歌手" 或 "歌名 - 歌手" 两种格式
           const match = title.match(/^(.+?)(?:\s{2,}|\s-\s)(.+)$/)
           const display = match ? `${match[1].trim()} - ${match[2].trim()}` : title
           setPendingDeleteName(display)
-          setConfirmOpen(true)
+          
+          // 直接显示密码输入框
+          setPasswordOpen(true)
         }}
       />
-      <ConfirmModal
-        open={confirmOpen}
+      <Password
+        open={passwordOpen}
         title="删除歌曲"
         message={pendingDeleteName ? `确认删除：${pendingDeleteName}？` : '确认删除该歌曲吗？'}
-        onCancel={() => { setConfirmOpen(false); setPendingDeleteUrl(''); setPendingDeleteName('') }}
-        onConfirm={async () => {
-          const url = pendingDeleteUrl
-          setConfirmOpen(false)
+        onCancel={() => { 
+          setPasswordOpen(false)
           setPendingDeleteUrl('')
           setPendingDeleteName('')
-          
-          // 立即从UI中移除歌曲，提供即时反馈
-          setTracks(prevTracks => prevTracks.filter(t => t.url !== url))
-          
-          // 同时从本地存储中移除，确保数据一致性
-          persistRemoveByUrl(url)
-          
-          // 计算仓库内路径：本地 /music/ 路径映射为 public/music/...
-          const computeFilePath = (u) => {
-            if (!u) return ''
-            if (u.startsWith('/public/music/')) return u.replace(/^\//, '')
-            if (u.startsWith('/music/')) return `public${u}`.replace(/^\//, '')
-            return ''
-          }
-          // 展示进度
-          setProgressOpen(true)
-          setProgressTitle('删除中')
-          setProgressMessage('正在从仓库删除文件...')
-          setProgressValue(10)
-          try {
-            const filePath = computeFilePath(url)
-            const res = await fetch('/api/delete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ filePath, rawUrl: url })
-            })
-            if (!res.ok) {
-              const t = await res.text()
-              throw new Error(`删除失败：${res.status} ${t}`)
-            }
-            setProgressValue(80)
-            setProgressTitle('完成')
-            setProgressMessage('已从仓库删除并同步到列表')
-            setProgressValue(100)
-          } catch (e) {
-            console.error(e)
-            setProgressTitle('失败')
-            setProgressMessage(e.message || '删除失败')
-            // 如果删除失败，重新加载数据以恢复歌曲
-            loadManifest()
-          } finally {
-            setTimeout(() => setProgressOpen(false), 800)
-          }
+          setPasswordErrorCount(0)
+        }}
+        onConfirm={() => {
+          setPasswordOpen(false)
+          // 执行删除逻辑
+          executeDelete()
+        }}
+        onPasswordError={() => {
+          setPasswordErrorCount(prev => prev + 1)
         }}
       />
-      <SettingsModal
+      <Settings
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onAddSong={async ({ songUrl, songTitle, fileName, mvUrl }) => {
@@ -587,7 +604,7 @@ export default function App() {
           setSettingsOpen(false)
         }}
       />
-      <ProgressModal
+      <Progress
         open={progressOpen}
         title={progressTitle}
         message={progressMessage}
