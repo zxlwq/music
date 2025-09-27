@@ -80,6 +80,30 @@ jobs:
           # 安装rclone用于WebDAV上传
           curl https://rclone.org/install.sh | sudo bash
 
+      - name: 验证WebDAV凭据
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          echo "验证WebDAV凭据..."
+          echo "URL: ${{ secrets.WEBDAV_URL }}"
+          echo "User: ${{ secrets.WEBDAV_USER }}"
+          echo "Pass length: ${#WEBDAV_PASS}"
+          
+          # 检查密码是否为空或过短
+          if [ -z "${{ secrets.WEBDAV_PASS }}" ]; then
+            echo "❌ 错误：密码为空"
+            exit 1
+          fi
+          
+          if [ ${#WEBDAV_PASS} -lt 8 ]; then
+            echo "⚠️ 警告：密码长度少于8位，可能导致连接问题"
+          fi
+          
+          # 检查URL格式
+          if [[ ! "${{ secrets.WEBDAV_URL }}" =~ ^https?:// ]]; then
+            echo "❌ 错误：URL格式不正确，应以 http:// 或 https:// 开头"
+            exit 1
+          fi
+
       - name: 配置WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
         run: |
@@ -93,11 +117,18 @@ jobs:
           user = ${{ secrets.WEBDAV_USER }}
           pass = ${{ secrets.WEBDAV_PASS }}
           EOF
+          
+          echo "✅ WebDAV配置文件已创建"
 
       - name: 测试WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
         run: |
-          rclone lsd webdav: || echo "WebDAV连接测试失败，请检查配置"
+          echo "开始测试WebDAV连接..."
+          echo "配置文件内容："
+          cat ~/.config/rclone/rclone.conf
+          echo ""
+          echo "测试连接..."
+          rclone lsd webdav: --verbose || echo "WebDAV连接测试失败，请检查配置"
 
       - name: 上传到云盘
         if: steps.check-music.outputs.has_music == 'true'
