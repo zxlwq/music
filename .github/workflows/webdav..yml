@@ -1,4 +1,4 @@
-name: 上传音乐到云盘
+name: 压缩并上传音乐文件到云盘
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ on:
   push:
     paths:
       - 'public/music/**'
-      - '.github/workflows/webdav..yml'
+      - '.github/workflows/webdav.yml'
 
 permissions:
   contents: read
@@ -106,22 +106,40 @@ jobs:
 
       - name: 配置WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
+        env:
+          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
         run: |
           # 创建rclone配置文件
           mkdir -p ~/.config/rclone
+          
+          # 方法1：直接写入配置文件
           cat > ~/.config/rclone/rclone.conf << EOF
           [webdav]
           type = webdav
-          url = ${{ secrets.WEBDAV_URL }}
+          url = ${WEBDAV_URL}
           vendor = other
-          user = ${{ secrets.WEBDAV_USER }}
-          pass = ${{ secrets.WEBDAV_PASS }}
+          user = ${WEBDAV_USER}
+          pass = ${WEBDAV_PASS}
           EOF
           
           echo "✅ WebDAV配置文件已创建"
+          
+          # 验证配置文件格式
+          echo "配置文件内容："
+          cat ~/.config/rclone/rclone.conf
+          
+          # 备用方法：使用rclone config命令（如果直接配置失败）
+          echo "尝试备用配置方法..."
+          rclone config create webdav webdav url="${WEBDAV_URL}" vendor=other user="${WEBDAV_USER}" pass="${WEBDAV_PASS}" --non-interactive || echo "备用配置方法失败，使用直接配置"
 
       - name: 测试WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
+        env:
+          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
         run: |
           echo "开始测试WebDAV连接..."
           echo "配置文件内容："
@@ -132,6 +150,10 @@ jobs:
 
       - name: 上传到云盘
         if: steps.check-music.outputs.has_music == 'true'
+        env:
+          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
         run: |
           # 创建上传路径
           UPLOAD_PATH="${{ github.event.inputs.upload_path || '/music/' }}"
