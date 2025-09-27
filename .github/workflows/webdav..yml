@@ -75,16 +75,8 @@ jobs:
       - name: 配置WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
         run: |
-          # 创建rclone配置文件
-          mkdir -p ~/.config/rclone
-          cat > ~/.config/rclone/rclone.conf << EOF
-          [webdav]
-          type = webdav
-          url = ${WEBDAV_URL}
-          vendor = other
-          user = ${WEBDAV_USER}
-          pass = ${WEBDAV_PASS}
-          EOF
+          # 使用rclone config create命令配置
+          rclone config create webdav webdav url="${WEBDAV_URL}" vendor=other user="${WEBDAV_USER}" pass="${WEBDAV_PASS}" --non-interactive
           
           echo "✅ WebDAV配置完成"
 
