@@ -1,0 +1,20 @@
+# Version control and editor
+.git
+.github/
+.vscode/
+*.swp
+
+# OS and misc
+.DS_Store
+Thumbs.db
+*.log
+
+# Tests and coverage
+coverage/
+.nyc_output/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*

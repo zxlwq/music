@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  music-player:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./public/music:/app/public/music
+      - ./public/covers:/app/public/covers
+      - ./public/images:/app/public/images
+    restart: unless-stopped
+    container_name: music-player
