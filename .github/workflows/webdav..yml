@@ -19,7 +19,7 @@ on:
   push:
     paths:
       - 'public/music/**'
-      - '.github/workflows/upload-music.yml'
+      - '.github/workflows/webdav..yml'
 
 permissions:
   contents: read
@@ -90,8 +90,8 @@ jobs:
           type = webdav
           url = ${{ secrets.WEBDAV_URL }}
           vendor = other
-          user = ${{ secrets.WEBDAV_USERNAME }}
-          pass = ${{ secrets.WEBDAV_PASSWORD }}
+          user = ${{ secrets.WEBDAV_USER }}
+          pass = ${{ secrets.WEBDAV_PASS }}
           EOF
 
       - name: 测试WebDAV连接
