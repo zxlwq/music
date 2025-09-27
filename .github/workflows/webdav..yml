@@ -1,4 +1,4 @@
-name: 上传音乐到云盘
+name: 压缩并上传音乐文件到云盘
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - 'public/music/**'
+      - '.github/workflows/upload-music.yml'
 
 permissions:
   contents: read
@@ -56,13 +57,20 @@ jobs:
           # 使用固定文件名，每次覆盖
           ARCHIVE_NAME="music_backup.zip"
           
-          # 创建压缩包
+          # 创建压缩包（使用更好的压缩设置）
           cd public/music
-          zip -r "../../${ARCHIVE_NAME}" . -x "*.DS_Store" "*.Thumbs.db"
+          zip -r -9 "../../${ARCHIVE_NAME}" . -x "*.DS_Store" "*.Thumbs.db" "*.tmp"
           cd ../..
           
           # 显示压缩包信息
           ls -lh "${ARCHIVE_NAME}"
+          
+          # 验证压缩包完整性
+          unzip -t "${ARCHIVE_NAME}"
+          
+          # 计算文件校验和
+          md5sum "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.md5"
+          
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
 
       - name: 安装WebDAV客户端
@@ -91,13 +99,15 @@ jobs:
           UPLOAD_PATH="/music/"
           rclone mkdir "webdav:${UPLOAD_PATH}" || echo "目录可能已存在"
           
-          # 上传压缩包
+          # 上传压缩包和校验文件
           rclone copy "${ARCHIVE_NAME}" "webdav:${UPLOAD_PATH}" --progress
+          rclone copy "${ARCHIVE_NAME}.md5" "webdav:${UPLOAD_PATH}" --progress
           
           # 验证上传
           rclone ls "webdav:${UPLOAD_PATH}${ARCHIVE_NAME}"
+          rclone ls "webdav:${UPLOAD_PATH}${ARCHIVE_NAME}.md5"
 
       - name: 清理本地文件
         if: steps.check-music.outputs.has_music == 'true'
         run: |
-          rm -f "${ARCHIVE_NAME}"
+          rm -f "${ARCHIVE_NAME}" "${ARCHIVE_NAME}.md5"
