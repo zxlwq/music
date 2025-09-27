@@ -1,0 +1,132 @@
+name: 上传音乐到云盘
+
+on:
+  workflow_dispatch:
+    inputs:
+      compression_level:
+        description: '压缩级别 (1-9, 9为最高压缩)'
+        required: false
+        default: '6'
+        type: string
+      upload_path:
+        description: '云盘上传路径'
+        required: false
+        default: '/music/'
+        type: string
+  schedule:
+    # 每天凌晨2点自动执行
+    - cron: '0 2 * * *'
+  push:
+    paths:
+      - 'public/music/**'
+      - '.github/workflows/upload-music.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compress-and-upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 检查音乐文件
+        id: check-music
+        run: |
+          if [ -d "public/music" ] && [ "$(find public/music -type f \( -name "*.mp3" -o -name "*.flac" -o -name "*.wav" -o -name "*.m4a" -o -name "*.ogg" -o -name "*.aac" \) | wc -l)" -gt 0 ]; then
+            echo "has_music=true" >> $GITHUB_OUTPUT
+            echo "music_count=$(find public/music -type f \( -name "*.mp3" -o -name "*.flac" -o -name "*.wav" -o -name "*.m4a" -o -name "*.ogg" -o -name "*.aac" \) | wc -l)" >> $GITHUB_OUTPUT
+          else
+            echo "has_music=false" >> $GITHUB_OUTPUT
+            echo "music_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 显示音乐文件信息
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          echo "发现 ${{ steps.check-music.outputs.music_count }} 个音乐文件"
+          echo "音乐文件列表："
+          find public/music -type f \( -name "*.mp3" -o -name "*.flac" -o -name "*.wav" -o -name "*.m4a" -o -name "*.ogg" -o -name "*.aac" \) -exec ls -lh {} \;
+
+      - name: 安装压缩工具
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip
+
+      - name: 创建压缩包
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          # 创建时间戳
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          ARCHIVE_NAME="music_backup_${TIMESTAMP}.zip"
+          
+          # 创建压缩包
+          cd public/music
+          zip -r "../../${ARCHIVE_NAME}" . -x "*.DS_Store" "*.Thumbs.db"
+          cd ../..
+          
+          # 显示压缩包信息
+          ls -lh "${ARCHIVE_NAME}"
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+
+      - name: 安装WebDAV客户端
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          # 安装rclone用于WebDAV上传
+          curl https://rclone.org/install.sh | sudo bash
+
+      - name: 配置WebDAV连接
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          # 创建rclone配置文件
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [webdav]
+          type = webdav
+          url = ${{ secrets.WEBDAV_URL }}
+          vendor = other
+          user = ${{ secrets.WEBDAV_USERNAME }}
+          pass = ${{ secrets.WEBDAV_PASSWORD }}
+          EOF
+
+      - name: 测试WebDAV连接
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          rclone lsd webdav: || echo "WebDAV连接测试失败，请检查配置"
+
+      - name: 上传到云盘
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          # 创建上传路径
+          UPLOAD_PATH="${{ github.event.inputs.upload_path || '/music/' }}"
+          rclone mkdir "webdav:${UPLOAD_PATH}" || echo "目录可能已存在"
+          
+          # 上传压缩包
+          rclone copy "${ARCHIVE_NAME}" "webdav:${UPLOAD_PATH}" --progress
+          
+          # 验证上传
+          rclone ls "webdav:${UPLOAD_PATH}${ARCHIVE_NAME}"
+
+      - name: 清理本地文件
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          rm -f "${ARCHIVE_NAME}"
+
+      - name: 上传完成通知
+        if: steps.check-music.outputs.has_music == 'true'
+        run: |
+          echo "✅ 音乐文件压缩并上传完成！"
+          echo "📁 上传路径: ${{ github.event.inputs.upload_path || '/music/' }}"
+          echo "📦 压缩包: ${ARCHIVE_NAME}"
+          echo "🎵 音乐文件数量: ${{ steps.check-music.outputs.music_count }}"
+
+      - name: 无音乐文件提示
+        if: steps.check-music.outputs.has_music == 'false'
+        run: |
+          echo "ℹ️ 未发现音乐文件，跳过上传"
+          echo "请将音乐文件放置在 public/music/ 目录下"
