@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function ProgressModal({ open, title, message, progress, onCancel }) {
+export default function Progress({ open, title, message, progress, onCancel }) {
   if (!open) return null
   const pct = Math.max(0, Math.min(100, Number(progress) || 0))
   return (
@@ -21,7 +21,3 @@ export default function ProgressModal({ open, title, message, progress, onCancel
     </div>
   )
 }
-
-
-
-
