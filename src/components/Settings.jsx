@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-export default function SettingsModal({ open, onClose, onAddSong, onImportRepo, onImportApi, onResetPlaylist }) {
+export default function Settings({ open, onClose, onAddSong, onImportRepo, onImportApi, onResetPlaylist }) {
   const [songUrl, setSongUrl] = useState('')
   const [songTitle, setSongTitle] = useState('')
   const [songMvUrl, setSongMvUrl] = useState('')
@@ -204,4 +204,3 @@ export default function SettingsModal({ open, onClose, onAddSong, onImportRepo, 
     </div>
   )
 }
-
