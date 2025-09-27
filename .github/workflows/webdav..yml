@@ -2,24 +2,13 @@ name: 压缩并上传音乐文件到云盘
 
 on:
   workflow_dispatch:
-    inputs:
-      compression_level:
-        description: '压缩级别 (1-9, 9为最高压缩)'
-        required: false
-        default: '6'
-        type: string
-      upload_path:
-        description: '云盘上传路径'
-        required: false
-        default: '/music/'
-        type: string
   schedule:
     # 每天凌晨2点自动执行
     - cron: '0 2 * * *'
   push:
     paths:
       - 'public/music/**'
-      - '.github/workflows/webdav.yml'
+      - '.github/workflows/upload-music.yml'
 
 permissions:
   contents: read
@@ -27,6 +16,10 @@ permissions:
 jobs:
   compress-and-upload:
     runs-on: ubuntu-latest
+    env:
+      WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+      WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+      WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
     
     steps:
       - name: 检出代码
@@ -61,9 +54,8 @@ jobs:
       - name: 创建压缩包
         if: steps.check-music.outputs.has_music == 'true'
         run: |
-          # 创建时间戳
-          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-          ARCHIVE_NAME="music_backup_${TIMESTAMP}.zip"
+          # 使用固定文件名，每次覆盖
+          ARCHIVE_NAME="music_backup.zip"
           
           # 创建压缩包
           cd public/music
@@ -80,41 +72,11 @@ jobs:
           # 安装rclone用于WebDAV上传
           curl https://rclone.org/install.sh | sudo bash
 
-      - name: 验证WebDAV凭据
-        if: steps.check-music.outputs.has_music == 'true'
-        run: |
-          echo "验证WebDAV凭据..."
-          echo "URL: ${{ secrets.WEBDAV_URL }}"
-          echo "User: ${{ secrets.WEBDAV_USER }}"
-          echo "Pass length: ${#WEBDAV_PASS}"
-          
-          # 检查密码是否为空或过短
-          if [ -z "${{ secrets.WEBDAV_PASS }}" ]; then
-            echo "❌ 错误：密码为空"
-            exit 1
-          fi
-          
-          if [ ${#WEBDAV_PASS} -lt 8 ]; then
-            echo "⚠️ 警告：密码长度少于8位，可能导致连接问题"
-          fi
-          
-          # 检查URL格式
-          if [[ ! "${{ secrets.WEBDAV_URL }}" =~ ^https?:// ]]; then
-            echo "❌ 错误：URL格式不正确，应以 http:// 或 https:// 开头"
-            exit 1
-          fi
-
       - name: 配置WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
-        env:
-          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
-          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
-          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
         run: |
           # 创建rclone配置文件
           mkdir -p ~/.config/rclone
-          
-          # 方法1：直接写入配置文件
           cat > ~/.config/rclone/rclone.conf << EOF
           [webdav]
           type = webdav
@@ -124,39 +86,18 @@ jobs:
           pass = ${WEBDAV_PASS}
           EOF
           
-          echo "✅ WebDAV配置文件已创建"
-          
-          # 验证配置文件格式
-          echo "配置文件内容："
-          cat ~/.config/rclone/rclone.conf
-          
-          # 备用方法：使用rclone config命令（如果直接配置失败）
-          echo "尝试备用配置方法..."
-          rclone config create webdav webdav url="${WEBDAV_URL}" vendor=other user="${WEBDAV_USER}" pass="${WEBDAV_PASS}" --non-interactive || echo "备用配置方法失败，使用直接配置"
+          echo "✅ WebDAV配置完成"
 
       - name: 测试WebDAV连接
         if: steps.check-music.outputs.has_music == 'true'
-        env:
-          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
-          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
-          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
         run: |
-          echo "开始测试WebDAV连接..."
-          echo "配置文件内容："
-          cat ~/.config/rclone/rclone.conf
-          echo ""
-          echo "测试连接..."
-          rclone lsd webdav: --verbose || echo "WebDAV连接测试失败，请检查配置"
+          rclone lsd webdav: || echo "WebDAV连接测试失败"
 
       - name: 上传到云盘
         if: steps.check-music.outputs.has_music == 'true'
-        env:
-          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
-          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
-          WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
         run: |
-          # 创建上传路径
-          UPLOAD_PATH="${{ github.event.inputs.upload_path || '/music/' }}"
+          # 固定上传路径
+          UPLOAD_PATH="/music/"
           rclone mkdir "webdav:${UPLOAD_PATH}" || echo "目录可能已存在"
           
           # 上传压缩包
@@ -169,17 +110,3 @@ jobs:
         if: steps.check-music.outputs.has_music == 'true'
         run: |
           rm -f "${ARCHIVE_NAME}"
-
-      - name: 上传完成通知
-        if: steps.check-music.outputs.has_music == 'true'
-        run: |
-          echo "✅ 音乐文件压缩并上传完成！"
-          echo "📁 上传路径: ${{ github.event.inputs.upload_path || '/music/' }}"
-          echo "📦 压缩包: ${ARCHIVE_NAME}"
-          echo "🎵 音乐文件数量: ${{ steps.check-music.outputs.music_count }}"
-
-      - name: 无音乐文件提示
-        if: steps.check-music.outputs.has_music == 'false'
-        run: |
-          echo "ℹ️ 未发现音乐文件，跳过上传"
-          echo "请将音乐文件放置在 public/music/ 目录下"
