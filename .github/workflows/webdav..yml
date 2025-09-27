@@ -38,13 +38,6 @@ jobs:
             echo "music_count=0" >> $GITHUB_OUTPUT
           fi
 
-      - name: 显示音乐文件信息
-        if: steps.check-music.outputs.has_music == 'true'
-        run: |
-          echo "发现 ${{ steps.check-music.outputs.music_count }} 个音乐文件"
-          echo "音乐文件列表："
-          find public/music -type f \( -name "*.mp3" -o -name "*.flac" -o -name "*.wav" -o -name "*.m4a" -o -name "*.ogg" -o -name "*.aac" \) -exec ls -lh {} \;
-
       - name: 安装压缩工具
         if: steps.check-music.outputs.has_music == 'true'
         run: |
@@ -55,21 +48,15 @@ jobs:
         if: steps.check-music.outputs.has_music == 'true'
         run: |
           # 使用固定文件名，每次覆盖
-          ARCHIVE_NAME="music_backup.zip"
+          ARCHIVE_NAME="music.zip"
           
-          # 创建压缩包（使用更好的压缩设置）
+          # 创建压缩包
           cd public/music
           zip -r -9 "../../${ARCHIVE_NAME}" . -x "*.DS_Store" "*.Thumbs.db" "*.tmp"
           cd ../..
           
           # 显示压缩包信息
           ls -lh "${ARCHIVE_NAME}"
-          
-          # 验证压缩包完整性
-          unzip -t "${ARCHIVE_NAME}"
-          
-          # 计算文件校验和
-          md5sum "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.md5"
           
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
 
@@ -87,11 +74,6 @@ jobs:
           
           echo "✅ WebDAV配置完成"
 
-      - name: 测试WebDAV连接
-        if: steps.check-music.outputs.has_music == 'true'
-        run: |
-          rclone lsd webdav: || echo "WebDAV连接测试失败"
-
       - name: 上传到云盘
         if: steps.check-music.outputs.has_music == 'true'
         run: |
@@ -99,15 +81,13 @@ jobs:
           UPLOAD_PATH="/music/"
           rclone mkdir "webdav:${UPLOAD_PATH}" || echo "目录可能已存在"
           
-          # 上传压缩包和校验文件
+          # 上传压缩包
           rclone copy "${ARCHIVE_NAME}" "webdav:${UPLOAD_PATH}" --progress
-          rclone copy "${ARCHIVE_NAME}.md5" "webdav:${UPLOAD_PATH}" --progress
           
           # 验证上传
           rclone ls "webdav:${UPLOAD_PATH}${ARCHIVE_NAME}"
-          rclone ls "webdav:${UPLOAD_PATH}${ARCHIVE_NAME}.md5"
 
       - name: 清理本地文件
         if: steps.check-music.outputs.has_music == 'true'
         run: |
-          rm -f "${ARCHIVE_NAME}" "${ARCHIVE_NAME}.md5"
+          rm -f "${ARCHIVE_NAME}"
