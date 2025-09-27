@@ -254,9 +254,6 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
       
       // 移动端激进策略：不等待加载完成，直接尝试播放
       if (isMobile) {
-        // 先暂停当前播放，避免重复播放
-        audio.pause()
-        
         // 移动端特殊处理：确保音频上下文激活
         if (audio.context && audio.context.state === 'suspended') {
           try {
@@ -288,7 +285,6 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
           })
         }
         
-        audio.pause()
         await audio.play()
         setIsPlaying(true)
         return Promise.resolve()
@@ -477,34 +473,22 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
     // 检测移动端
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     
-    // 先暂停当前播放，避免冲突
-    audio.pause()
+    // 重置进度和时间
+    setCurrentTime(0)
+    setDuration(0)
+    
+    // 加载新音频
+    audio.load()
     
     if (hasInteracted && isPlaying) {
       if (isMobile) {
-        // 移动端激进优化：延迟重置状态，保持视觉连续性
-        // 先加载音频，不立即重置进度条
-        audio.load()
-        
-        // 使用更激进的播放策略
+        // 移动端：立即尝试播放
         const playImmediately = () => {
-          // 立即尝试播放，不等待加载完成
-          play().then(() => {
-            // 播放成功后，延迟重置进度条，避免视觉跳跃
-            setTimeout(() => {
-              setCurrentTime(0)
-              setDuration(0)
-            }, 100)
-          }).catch(() => {
+          play().catch(() => {
             // 播放失败，等待音频加载
             const checkAndRetry = () => {
               if (audio.readyState >= 1) {
-                play().then(() => {
-                  setTimeout(() => {
-                    setCurrentTime(0)
-                    setDuration(0)
-                  }, 50)
-                })
+                play().catch(console.warn)
               } else {
                 setTimeout(checkAndRetry, 50)
               }
@@ -516,20 +500,28 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
         // 立即尝试播放
         playImmediately()
       } else {
-        // 桌面端：使用原有策略
-        setCurrentTime(0)
-        setDuration(0)
-        audio.load()
-        const delay = audio.readyState >= 2 ? 50 : 150
-        setTimeout(() => {
-          play()
-        }, delay)
+        // 桌面端：根据音频准备状态决定播放时机
+        if (audio.readyState >= 2) {
+          // 音频已准备好，立即播放
+          play().catch(console.warn)
+        } else {
+          // 音频未准备好，等待加载完成
+          const onCanPlay = () => {
+            audio.removeEventListener('canplay', onCanPlay)
+            play().catch(console.warn)
+          }
+          audio.addEventListener('canplay', onCanPlay)
+          
+          // 设置超时，避免无限等待
+          setTimeout(() => {
+            audio.removeEventListener('canplay', onCanPlay)
+            play().catch(console.warn)
+          }, 500)
+        }
       }
     } else {
-      // 非播放状态：立即更新状态
-      setCurrentTime(0)
-      setDuration(0)
-      audio.load()
+      // 非播放状态：确保停止播放
+      audio.pause()
       setIsPlaying(false)
     }
   }, [currentIndex])
