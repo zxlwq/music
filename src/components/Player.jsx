@@ -155,7 +155,6 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
       switch (e.key) {
         case ' ':
           e.preventDefault()
-          console.log('Space key pressed, current isPlaying:', isPlaying)
           togglePlay()
           break
         case 'ArrowLeft':
@@ -269,7 +268,6 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
         
         // 立即尝试播放，不等待加载
         await audio.play()
-        console.log('Mobile play() completed, setting isPlaying to true')
         setIsPlaying(true)
         return Promise.resolve()
       } else {
@@ -292,7 +290,6 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
         
         audio.pause()
         await audio.play()
-        console.log('Desktop play() completed, setting isPlaying to true')
         setIsPlaying(true)
         return Promise.resolve()
       }
@@ -305,30 +302,21 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
   }
 
   const pause = () => {
-    console.log('pause() called')
     audioRef.current.pause()
     setIsPlaying(false)
-    console.log('pause() completed, isPlaying set to false')
   }
 
 
   const togglePlay = () => {
-    console.log('togglePlay called, isPlaying:', isPlaying)
-    
     setHasInteracted(true)
     
     if (isPlaying) {
-      console.log('Currently playing, pausing...')
       pause()
     } else {
-      console.log('Currently paused, playing...')
       // 确保音频存在且可播放
       const audio = audioRef.current
       if (audio && audio.readyState >= 2) {
-        console.log('Audio ready, calling play()')
         play().catch(console.warn)
-      } else {
-        console.log('Audio not ready, readyState:', audio?.readyState)
       }
     }
   }
