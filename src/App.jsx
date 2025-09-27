@@ -165,8 +165,8 @@ export default function App() {
       // Escape键关闭所有模态框
       if (e.key === 'Escape') {
         e.preventDefault()
-        if (confirmOpen) {
-          setConfirmOpen(false)
+        if (passwordOpen) {
+          setPasswordOpen(false)
           setPendingDeleteUrl('')
           setPendingDeleteName('')
         } else if (settingsOpen) {
@@ -182,7 +182,7 @@ export default function App() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [confirmOpen, settingsOpen, progressOpen])
+  }, [passwordOpen, settingsOpen, progressOpen])
 
   // 本地持久化：新增与删除
   const persistAdd = (items) => {
