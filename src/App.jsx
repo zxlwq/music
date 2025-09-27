@@ -133,13 +133,17 @@ export default function App() {
     try {
       const ff = localStorage.getItem('ui.fontFamily') || ''
       const bg = localStorage.getItem('ui.bgUrl') || ''
+      const root = document.documentElement
       const body = document.body
-      if (body) {
-        body.style.fontFamily = ff ? ff : ''
-        if (bg) {
-          const base = "linear-gradient(180deg, rgba(0, 0, 0, .3), rgba(0, 0, 0, .3))"
-          body.style.backgroundImage = `${base}, url('${bg}')`
-        }
+      
+      if (root) {
+        // 更新 CSS 变量，影响所有元素
+        root.style.setProperty('--font-family', ff || 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial')
+      }
+      
+      if (body && bg) {
+        const base = "linear-gradient(180deg, rgba(0, 0, 0, .3), rgba(0, 0, 0, .3))"
+        body.style.backgroundImage = `${base}, url('${bg}')`
       }
     } catch {}
   }, [])
