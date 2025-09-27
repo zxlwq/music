@@ -155,6 +155,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
       switch (e.key) {
         case ' ':
           e.preventDefault()
+          console.log('Space key pressed, current isPlaying:', isPlaying)
           togglePlay()
           break
         case 'ArrowLeft':
@@ -212,7 +213,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [volume, muted, shuffle, loopMode, tracks, currentIndex, onChangeIndex, onOpenSettings])
+  }, [volume, muted, shuffle, loopMode, tracks, currentIndex, onChangeIndex, onOpenSettings, isPlaying])
 
   // 移动端预加载下一首歌曲
   useEffect(() => {
@@ -313,16 +314,18 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
 
   const togglePlay = () => {
     console.log('togglePlay called, isPlaying:', isPlaying)
+    
     setHasInteracted(true)
     
     if (isPlaying) {
-      console.log('Pausing...')
+      console.log('Currently playing, pausing...')
       pause()
     } else {
-      console.log('Playing...')
+      console.log('Currently paused, playing...')
       // 确保音频存在且可播放
       const audio = audioRef.current
       if (audio && audio.readyState >= 2) {
+        console.log('Audio ready, calling play()')
         play().catch(console.warn)
       } else {
         console.log('Audio not ready, readyState:', audio?.readyState)
