@@ -102,7 +102,6 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
   const [loopMode, setLoopMode] = useState('off')
   const [shuffle, setShuffle] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [isToggling, setIsToggling] = useState(false)
 
   const hasTracks = Array.isArray(tracks) && tracks.length > 0
   const currentTrack = hasTracks ? tracks[currentIndex] : null
@@ -156,7 +155,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
       switch (e.key) {
         case ' ':
           e.preventDefault()
-          togglePlay().catch(console.warn)
+          togglePlay()
           break
         case 'ArrowLeft':
           e.preventDefault()
@@ -269,6 +268,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
         
         // 立即尝试播放，不等待加载
         await audio.play()
+        console.log('Mobile play() completed, setting isPlaying to true')
         setIsPlaying(true)
         return Promise.resolve()
       } else {
@@ -291,6 +291,7 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
         
         audio.pause()
         await audio.play()
+        console.log('Desktop play() completed, setting isPlaying to true')
         setIsPlaying(true)
         return Promise.resolve()
       }
@@ -303,31 +304,29 @@ export default function Player({ tracks, currentIndex, onChangeIndex, forcePlayK
   }
 
   const pause = () => {
+    console.log('pause() called')
     audioRef.current.pause()
     setIsPlaying(false)
+    console.log('pause() completed, isPlaying set to false')
   }
 
 
-  const togglePlay = async () => {
-    // 防抖处理，避免快速重复点击
-    if (isToggling) return
-    
+  const togglePlay = () => {
+    console.log('togglePlay called, isPlaying:', isPlaying)
     setHasInteracted(true)
-    setIsToggling(true)
     
-    try {
-      if (isPlaying) {
-        pause()
+    if (isPlaying) {
+      console.log('Pausing...')
+      pause()
+    } else {
+      console.log('Playing...')
+      // 确保音频存在且可播放
+      const audio = audioRef.current
+      if (audio && audio.readyState >= 2) {
+        play().catch(console.warn)
       } else {
-        // 确保音频存在且可播放
-        const audio = audioRef.current
-        if (audio && audio.readyState >= 2) {
-          await play()
-        }
+        console.log('Audio not ready, readyState:', audio?.readyState)
       }
-    } finally {
-      // 使用 setTimeout 确保状态更新完成后再允许下次切换
-      setTimeout(() => setIsToggling(false), 100)
     }
   }
 
