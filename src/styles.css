@@ -45,12 +45,12 @@
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .form-label { font-size: 12px; color: var(--sub); }
-.form-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--muted); background: rgba(21,21,24,.45); color: var(--fg); outline: none; }
+.form-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--muted); background: rgba(21,21,24,.45); color: var(--fg); outline: none; font-family: inherit; }
 .form-input:focus { border-color: #6b7280; }
 /* Ensure selects and their options keep translucent background */
-select.form-input { background: rgba(21,21,24,.45); color: var(--fg); appearance: none; -webkit-appearance: none; border-radius: 10px; border: 1px solid var(--muted); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); padding-right: 28px; }
+select.form-input { background: rgba(21,21,24,.45); color: var(--fg); appearance: none; -webkit-appearance: none; border-radius: 10px; border: 1px solid var(--muted); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); padding-right: 28px; font-family: inherit; }
 select.form-input:focus { border-color: #6b7280; }
-.form-input option { background: rgba(21,21,24,.85); color: var(--fg); }
+.form-input option { background: rgba(21,21,24,.85); color: var(--fg); font-family: inherit; }
 .form-actions { display: flex; justify-content: center; }
 .hr { border: none; height: 1px; background: var(--muted); margin: 12px 0; opacity: .8; }
 .section-title { margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #e5e7eb; }
@@ -82,11 +82,18 @@ select.form-input:focus { border-color: #6b7280; }
   --ac: #4f46e5;
   --card: #151518;
   --muted: #2a2a2f;
+  --font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
 }
 
 /* Base resets */
 * {
   box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* Ensure all form elements inherit font */
+input, textarea, select, button {
+  font-family: inherit;
 }
 
 html,
@@ -99,7 +106,7 @@ body {
   margin: 0;
   background: var(--bg) fixed no-repeat center/cover;
   color: var(--fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+  font-family: var(--font-family);
 }
 
 /* Background image + overlay */
@@ -201,6 +208,7 @@ h1 {
   border-radius: 10px;
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, transform .02s ease;
+  font-family: inherit;
 }
 
 .btn:hover { background: #23232a; }
