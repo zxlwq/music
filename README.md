@@ -2,6 +2,11 @@
 
 一个现代化的音乐播放器，支持在线播放、歌单管理、MV 播放等功能。采用 React + Vite 构建，支持Cloudflare Pages和Docker 部署。
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.4.8-646CFF.svg)](https://vitejs.dev/)
+[![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages-F38020.svg)](https://pages.cloudflare.com/)
+
 ### 技术栈
 
 - **前端框架** - React 18
@@ -23,51 +28,9 @@
 ### Cloudflare Pages
 
 1. 连接 GitHub 仓库到 Cloudflare Pages
-2. 设置构建命令：`npm run build`
-3. 设置输出目录：`dist`
+2. 框架预设：`React (Vite)`
+3. 添加环境变量
 4. 部署完成
-
-### 🐳 Docker 部署
-
-> docker-compose.yml
-```
-version: '3.8'
-services:
-  music-player:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    volumes:
-      - ./public/music:/app/public/music
-      - ./public/covers:/app/public/covers
-      - ./public/images:/app/public/images
-    restart: unless-stopped
-    container_name: music-player
-```
-
-## 📁 项目结构
-
-```
-music/
-├── public/                 # 静态资源
-│   ├── music/             # 音乐文件目录
-│   ├── covers/            # 封面图片目录
-│   └── images/            # 其他图片资源
-├── src/                   # 源代码
-│   ├── components/        # React 组件
-│   │   ├── Player.jsx    # 播放器组件
-│   │   ├── Playlist.jsx  # 歌单组件
-│   │   └── SettingsModal.jsx # 设置弹窗
-│   ├── App.jsx           # 主应用组件
-│   └── styles.css        # 全局样式
-├── functions/            # Cloudflare Functions
-├── scripts/              # 构建脚本
-├── Dockerfile           # Docker 配置
-├── docker-compose.yml   # Docker Compose 配置
-└── package.json         # 项目配置
-```
 
 ## ⚙️ 配置说明
 
@@ -76,9 +39,9 @@ music/
 在项目根目录创建 `.env` 文件：
 
 ```env
-VITE_GIT_REPO=your-username/your-repo
+VITE_GIT_REPO=username/repo
 VITE_GIT_BRANCH=main
-VITE_GIT_TOKEN=your-github-token
+VITE_GIT_TOKEN=github-token
 ```
 
 ### 歌单配置
@@ -128,6 +91,10 @@ VITE_GIT_TOKEN=your-github-token
      'a.png','b.png','c.png','d.png','e.png','f.png','g.png','h.png','j.png','k.png','l.png','m.png','n.png','o.png','p.png','q.png','r.png','s.png','t.png','u.png','v.png','w.png','x.png','y.png','z.png'
    ]
    ```
+
+## 📄 许可证
+
+本项目基于 MIT 许可证开源 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
 
 ⭐ 如果这个项目对您有帮助，请给一个星标！
