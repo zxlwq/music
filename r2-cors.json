@@ -1,0 +1,30 @@
+[
+  {
+    "AllowedOrigins": ["https://music-zxlwq.pages.dev", "https://music.zxlwq.com"],
+    "AllowedMethods": ["GET", "HEAD", "PUT", "POST"],
+    "AllowedHeaders": [
+      "Range",
+      "Content-Type",
+      "Content-Length",
+      "Accept",
+      "Origin",
+      "User-Agent",
+      "Cache-Control",
+      "If-None-Match",
+      "If-Modified-Since",
+      "X-Amz-Date",
+      "Authorization",
+      "x-amz-content-sha256"
+    ],
+    "ExposeHeaders": [
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges",
+      "Content-Type",
+      "Cache-Control",
+      "ETag",
+      "Last-Modified"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]

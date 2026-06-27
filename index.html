@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>音乐播放器</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="manifest" href="/webmanifest" />
+    <meta name="theme-color" content="#000000" />
+
+    <link
+      rel="preload"
+      href="/src/styles.css"
+      as="style"
+      fetchpriority="high"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
+    />
+    <noscript><link rel="stylesheet" href="/src/styles.css" /></noscript>
+    <link rel="preload" href="/images/cd.webp" as="image" fetchpriority="high" />
+    <link rel="preload" href="/images/cd_tou.webp" as="image" fetchpriority="high" />
+    <link rel="preload" href="/images/background.webp" as="image" fetchpriority="high" />
+    <link rel="apple-touch-icon" href="/images/cd.webp" />
+    <link rel="prefetch" href="/webmanifest" as="fetch" crossorigin />
+    <link rel="prefetch" href="/music.json" as="fetch" crossorigin />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      (function () {
+        function setupPwaInstallPrompt() {
+          var deferredPrompt = null;
+          window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            try {
+              // 使用 localStorage：sessionStorage 在关闭标签后清空，会导致每次新开页面都再弹条
+              if (localStorage.getItem('pwa-install-dismissed')) return;
+            } catch (err) {}
+            if (document.getElementById('pwa-install-banner')) return;
+            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            var bar = document.createElement('div');
+            bar.id = 'pwa-install-banner';
+            bar.className = 'pwa-install-banner';
+            bar.setAttribute('role', 'region');
+            bar.setAttribute('aria-label', '安装应用');
+            var text = document.createElement('span');
+            text.className = 'pwa-install-banner-text';
+            text.textContent = '可将本播放器安装到设备主屏幕，离线访问更稳定。';
+            var btnLater = document.createElement('button');
+            btnLater.type = 'button';
+            btnLater.className = 'pwa-install-banner-btn pwa-install-banner-btn-ghost';
+            btnLater.textContent = '暂不';
+            var btnInstall = document.createElement('button');
+            btnInstall.type = 'button';
+            btnInstall.className = 'pwa-install-banner-btn pwa-install-banner-btn-primary';
+            btnInstall.textContent = '安装到主屏幕';
+            function dismissInstall() {
+              try {
+                localStorage.setItem('pwa-install-dismissed', '1');
+              } catch (err2) {}
+              if (bar.parentNode) bar.parentNode.removeChild(bar);
+            }
+            btnLater.addEventListener('click', dismissInstall);
+            btnInstall.addEventListener('click', function () {
+              if (!deferredPrompt) return;
+              deferredPrompt.prompt();
+              deferredPrompt.userChoice.finally(function () {
+                deferredPrompt = null;
+                dismissInstall();
+              });
+            });
+            bar.appendChild(text);
+            bar.appendChild(btnLater);
+            bar.appendChild(btnInstall);
+            document.body.appendChild(bar);
+          });
+        }
+
+        if (!('serviceWorker' in navigator)) {
+          console.warn('❌ 当前浏览器不支持 Service Worker');
+          setupPwaInstallPrompt();
+          return;
+        }
+        function registerSw() {
+          navigator.serviceWorker
+            .register('/sw.js', { scope: '/' })
+            .then((registration) => {
+              console.log('✅ 离线缓存已启用，版本:', registration.scope);
+
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (!newWorker) return;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('🔄 发现新版本，可刷新页面以使用');
+                    if (document.getElementById('sw-update-banner')) return;
+                    var bar = document.createElement('div');
+                    bar.id = 'sw-update-banner';
+                    bar.className = 'sw-update-banner';
+                    bar.setAttribute('role', 'status');
+                    bar.setAttribute('aria-live', 'polite');
+                    var text = document.createElement('span');
+                    text.className = 'sw-update-banner-text';
+                    text.textContent = '新版本已就绪，刷新后即可使用最新缓存与功能。';
+                    var btnLater = document.createElement('button');
+                    btnLater.type = 'button';
+                    btnLater.className = 'sw-update-banner-btn sw-update-banner-btn-ghost';
+                    btnLater.textContent = '稍后';
+                    var btnRefresh = document.createElement('button');
+                    btnRefresh.type = 'button';
+                    btnRefresh.className = 'sw-update-banner-btn sw-update-banner-btn-primary';
+                    btnRefresh.textContent = '立即刷新';
+                    function dismiss() {
+                      if (bar.parentNode) bar.parentNode.removeChild(bar);
+                    }
+                    function applyAndReload() {
+                      try {
+                        newWorker.postMessage({ action: 'skipWaiting' });
+                      } catch (e) {}
+                      window.location.reload();
+                    }
+                    btnRefresh.addEventListener('click', applyAndReload);
+                    btnLater.addEventListener('click', dismiss);
+                    bar.appendChild(text);
+                    bar.appendChild(btnLater);
+                    bar.appendChild(btnRefresh);
+                    document.body.appendChild(bar);
+                  }
+                });
+              });
+            })
+            .catch((registrationError) => {
+              console.warn('❌ 离线缓存启用失败:', registrationError);
+            });
+        }
+        setupPwaInstallPrompt();
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', registerSw, { once: true });
+        } else {
+          registerSw();
+        }
+      })();
+    </script>
+  </body>
+</html>

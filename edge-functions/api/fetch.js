@@ -1,0 +1,193 @@
+export function onRequest(context) {
+  const { request, env } = context;
+
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Cache-Control': 'no-store',
+  };
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'content-type': 'application/json' },
+    });
+  }
+
+  return handleFetch(request, env, corsHeaders);
+}
+
+async function handleFetch(request, env, corsHeaders) {
+  try {
+    const body = await request.json();
+
+    if (body.action === 'getConfig') {
+      const customProxyUrl = env.GIT_URL || '';
+      const config = {
+        customProxyUrl: customProxyUrl,
+        hasCustomProxy: !!customProxyUrl,
+      };
+
+      return new Response(JSON.stringify(config), {
+        status: 200,
+        headers: { ...corsHeaders, 'content-type': 'application/json' },
+      });
+    }
+
+    if (body.action === 'customProxy') {
+      const { url } = body;
+      const customProxyUrl = env.GIT_URL || '';
+
+      if (!customProxyUrl) {
+        return new Response(JSON.stringify({ error: 'Custom proxy not configured' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'content-type': 'application/json' },
+        });
+      }
+
+      if (!url || typeof url !== 'string') {
+        return new Response(JSON.stringify({ error: 'Missing url' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'content-type': 'application/json' },
+        });
+      }
+
+      if (!/^https?:\/\//i.test(url)) {
+        return new Response(JSON.stringify({ error: 'Only http/https allowed' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'content-type': 'application/json' },
+        });
+      }
+
+      try {
+        const proxyUrl = `${customProxyUrl}?url=${encodeURIComponent(url)}`;
+        console.log('[api/fetch] Custom proxy request:', { proxyUrl });
+        const headers = {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+          Accept:
+            'audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/m4a,audio/webm,audio/*,*/*;q=0.9',
+          'Accept-Encoding': 'identity',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+        const upstream = await fetch(proxyUrl, {
+          redirect: 'follow',
+          headers,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        console.log('[api/fetch] Custom proxy upstream status:', upstream.status);
+        if (!upstream.ok) {
+          return new Response(
+            JSON.stringify({ error: `Custom proxy upstream ${upstream.status}` }),
+            {
+              status: upstream.status,
+              headers: { ...corsHeaders, 'content-type': 'application/json' },
+            },
+          );
+        }
+        const arrayBuf = await upstream.arrayBuffer();
+        const fileSize = arrayBuf.byteLength;
+        const isLargeFile = fileSize > 5 * 1024 * 1024;
+
+        const toBase64 = async (buffer) => {
+          const bytes = new Uint8Array(buffer);
+          const chunkSize = isLargeFile ? 0x4000 : 0x8000;
+          let binary = '';
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            const sub = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, sub);
+            if (isLargeFile && i % (chunkSize * 10) === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+          }
+          return btoa(binary);
+        };
+        const base64 = await toBase64(arrayBuf);
+        const mime = upstream.headers.get('content-type') || 'application/octet-stream';
+        const resp = { base64, contentType: mime };
+        console.log('[api/fetch] Custom proxy success:', {
+          bytes: arrayBuf.byteLength,
+          contentType: mime,
+        });
+        return new Response(JSON.stringify(resp), {
+          status: 200,
+          headers: { ...corsHeaders, 'content-type': 'application/json' },
+        });
+      } catch (error) {
+        console.error('[api/fetch] Custom proxy error:', error);
+        return new Response(JSON.stringify({ error: `Custom proxy error: ${error.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, 'content-type': 'application/json' },
+        });
+      }
+    }
+
+    const { url } = body;
+    console.log('[api/fetch] POST invoked', { url });
+    if (!url || typeof url !== 'string') {
+      return new Response(JSON.stringify({ error: 'Missing url' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'content-type': 'application/json' },
+      });
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      return new Response(JSON.stringify({ error: 'Only http/https allowed' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'content-type': 'application/json' },
+      });
+    }
+
+    const headers = {};
+    try {
+      const u = new URL(url);
+      headers['Referer'] = `${u.origin}/`;
+    } catch {}
+    headers['User-Agent'] =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+    const upstream = await fetch(url, { redirect: 'follow', headers });
+    console.log('[api/fetch] upstream status', upstream.status);
+    if (!upstream.ok) {
+      return new Response(JSON.stringify({ error: `Upstream ${upstream.status}` }), {
+        status: upstream.status,
+        headers: { ...corsHeaders, 'content-type': 'application/json' },
+      });
+    }
+
+    const arrayBuf = await upstream.arrayBuffer();
+    const toBase64 = (buffer) => {
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 0x8000;
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const sub = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, sub);
+      }
+      return btoa(binary);
+    };
+    const base64 = toBase64(arrayBuf);
+    const mime = upstream.headers.get('content-type') || 'application/octet-stream';
+    const resp = { base64, contentType: mime };
+    console.log('[api/fetch] success', { bytes: arrayBuf.byteLength, contentType: mime });
+    return new Response(JSON.stringify(resp), {
+      status: 200,
+      headers: { ...corsHeaders, 'content-type': 'application/json' },
+    });
+  } catch (e) {
+    console.error('[api/fetch] error', e && e.stack ? e.stack : e);
+    return new Response(JSON.stringify({ error: e.message || 'proxy error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'content-type': 'application/json' },
+    });
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "version": 2,
+  "name": "music",
+  "public": true,
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/edge-functions/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "functions": {
+    "edge-functions/api/audio.js": {
+      "maxDuration": 30
+    },
+    "edge-functions/api/r2.js": {
+      "maxDuration": 60
+    },
+    "edge-functions/api/gist.js": {
+      "maxDuration": 30
+    },
+    "edge-functions/api/delete.js": {
+      "maxDuration": 30
+    },
+    "edge-functions/api/upload.js": {
+      "maxDuration": 60
+    },
+    "edge-functions/api/fetch.js": {
+      "maxDuration": 60
+    },
+    "edge-functions/api/exists.js": {
+      "maxDuration": 10
+    },
+    "edge-functions/api/webdav.js": {
+      "maxDuration": 60
+    },
+    "edge-functions/api/music/list.js": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/favicon.ico",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=315360000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "image/x-icon"
+        }
+      ]
+    },
+    {
+      "source": "/images/cd.webp",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=315360000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "image/webp"
+        }
+      ]
+    },
+    {
+      "source": "/images/cd_tou.webp",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=315360000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "image/webp"
+        }
+      ]
+    },
+    {
+      "source": "/images/background.webp",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=315360000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "image/webp"
+        }
+      ]
+    },
+    {
+      "source": "/.*",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, Range"
+        }
+      ]
+    }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite"
+}

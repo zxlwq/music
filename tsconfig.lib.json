@@ -1,0 +1,14 @@
+{
+  // lib：strict + noImplicitAny（sync.js 已补 JSDoc）
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "useUnknownInCatchVariables": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "types": ["node"]
+  },
+  "include": ["lib/**/*.js"],
+  "exclude": ["node_modules", "dist", "build"]
+}
