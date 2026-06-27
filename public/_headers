@@ -1,0 +1,106 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/music.json
+  Content-Type: application/json
+  Cache-Control: public, max-age=60, must-revalidate
+
+/music/*
+  Cache-Control: public, max-age=604800, immutable
+  Accept-Ranges: bytes
+
+/music/*.mp3
+  Content-Type: audio/mpeg
+
+/music/*.flac
+  Content-Type: audio/flac
+
+/music/*.wav
+  Content-Type: audio/wav
+
+/music/*.aac
+  Content-Type: audio/aac
+
+/music/*.m4a
+  Content-Type: audio/mp4
+
+/music/*.ogg
+  Content-Type: audio/ogg
+
+/music/*.opus
+  Content-Type: audio/opus
+
+/music/*.webm
+  Content-Type: audio/webm
+
+/assets/*.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.jsx
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.mjs
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.css
+  Content-Type: text/css
+  Cache-Control: public, max-age=31536000, immutable
+
+/images/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/favicon.ico
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: image/x-icon
+
+/covers/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/images/*.webp
+  Content-Type: image/webp
+
+/covers/*.webp
+  Content-Type: image/webp
+
+/*.js
+  Content-Type: application/javascript
+
+/*.jsx
+  Content-Type: application/javascript
+
+/*.mjs
+  Content-Type: application/javascript
+
+/*.ts
+  Content-Type: application/javascript
+
+/*.tsx
+  Content-Type: application/javascript
+
+/*.css
+  Content-Type: text/css
+
+/api/audio
+  Cache-Control: public, max-age=3600, s-maxage=86400
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Range, User-Agent, X-Requested-With
+  Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges, X-Processing-Time, X-Cache-Status
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+
+/api/audio*
+  X-Chrome-Mobile: true
+  X-Mobile-Optimized: true
+  X-Audio-Streaming: enabled
+  X-Range-Support: bytes
+

@@ -1,0 +1,20 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "ignoreFiles": ["dist/**", "build/**", "node_modules/**"],
+  "rules": {
+    "no-descending-specificity": null,
+    "color-function-notation": null,
+    "alpha-value-notation": null,
+    "property-no-vendor-prefix": null,
+    "declaration-block-single-line-max-declarations": null,
+    "shorthand-property-no-redundant-values": null,
+    "declaration-block-no-redundant-longhand-properties": null,
+    "rule-empty-line-before": null,
+    "no-duplicate-selectors": null,
+    "value-keyword-case": null,
+    "keyframes-name-pattern": null,
+    "length-zero-no-unit": null,
+    "color-hex-length": null,
+    "media-feature-range-notation": null
+  }
+}
