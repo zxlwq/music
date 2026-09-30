@@ -1,0 +1,74 @@
+name: 上传音乐到云盘
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  upload-music:
+    runs-on: ubuntu-latest
+    env:
+      WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+      WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+      WEBDAV_PASS: ${{ secrets.WEBDAV_PASS }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装工具
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip curl
+          curl https://rclone.org/install.sh | sudo bash
+
+      - name: 配置WebDAV
+        run: |
+          rclone config create webdav webdav url="${WEBDAV_URL}" vendor=other user="${WEBDAV_USER}" pass="${WEBDAV_PASS}" --non-interactive
+
+      - name: 逐一检测并上传文件
+        run: |
+          set -e
+          UPLOAD_PATH="webdav:/music"
+          rclone mkdir "$UPLOAD_PATH" || true
+
+          find public/music -type f \( -name "*.mp3" -o -name "*.flac" -o -name "*.wav" -o -name "*.m4a" -o -name "*.ogg" -o -name "*.aac" \) | while read file; do
+            filename=$(basename "$file")
+            
+            echo "🎵 检测文件: $filename"
+
+            local_md5=$(md5sum "$file" | awk '{print $1}')
+
+            if rclone ls "$UPLOAD_PATH/$filename" >/dev/null 2>&1; then
+              echo "☁️ 云端有同名文件 → 进行MD5对比"
+
+              tmp_file="/tmp/remote_file"
+              rm -f "$tmp_file"
+
+              # 正确下载为文件
+              rclone cat "$UPLOAD_PATH/$filename" > "$tmp_file"
+              
+              remote_md5=$(md5sum "$tmp_file" | awk '{print $1}')
+              rm -f "$tmp_file"
+
+              echo "本地MD5:  $local_md5"
+              echo "云端MD5:  $remote_md5"
+              
+              if [ "$local_md5" == "$remote_md5" ]; then
+                echo "✅ 内容完全一致 → 跳过上传"
+                continue
+              else
+                echo "⚠️ 内容不同 → 执行重新上传"
+              fi
+            else
+              echo "🆕 云端不存在该文件 → 执行上传"
+            fi
+
+            rclone copy "$file" "$UPLOAD_PATH" --progress
+          done
+
+          echo "🎉 完成全部任务"

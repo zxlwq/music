@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+android/
+ios/
+coverage/
+package-lock.json
+*.min.js
+.git/
